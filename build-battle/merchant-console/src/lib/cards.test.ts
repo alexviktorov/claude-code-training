@@ -6,6 +6,7 @@ import {
   canTransition,
   eventFor,
   generateCardNumber,
+  isCardStatus,
   isLuhnValid,
   isNearLimit,
   luhnCheckDigit,
@@ -258,5 +259,13 @@ describe("validateIssueRequest", () => {
       ok: false,
       message: "Request id is required",
     })
+  })
+})
+
+describe("isCardStatus", () => {
+  it("accepts only the three statuses", () => {
+    expect(isCardStatus("frozen")).toBe(true)
+    expect(isCardStatus("exploded")).toBe(false)
+    expect(isCardStatus(undefined)).toBe(false)
   })
 })

@@ -28,6 +28,9 @@ export const CARD_STATUSES = [
   "cancelled",
 ] as const satisfies readonly CardStatus[]
 
+export const isCardStatus = (value: unknown): value is CardStatus =>
+  typeof value === "string" && (CARD_STATUSES as readonly string[]).includes(value)
+
 export const CARD_CATEGORIES = [
   "advertising",
   "software",
