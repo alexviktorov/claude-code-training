@@ -1,5 +1,10 @@
-import { merchants } from "./merchants"
+import { eventFor, generateCardNumber } from "@/lib/cards"
+import { merchantById, merchants } from "./merchants"
 import {
+  Card,
+  CardCategory,
+  CardEvent,
+  CardStatus,
   Currency,
   Dispute,
   Payment,
@@ -52,7 +57,7 @@ const REASON_CODES = [
   "13.7 Cancelled Merchandise",
 ]
 
-const pad = (n: number, width = 6) => String(n).padStart(width, "0")
+export const pad = (n: number, width = 6) => String(n).padStart(width, "0")
 
 /** The anchor date. Fixed, so "the last 30 days" is stable across runs. */
 export const GENERATED_AT = new Date("2026-08-13T00:00:00.000Z")
@@ -148,7 +153,9 @@ export function generate() {
   }
 
   const payouts = generatePayouts(payments)
-  return { payments, refunds, disputes, payouts }
+  // Cards draw from the PRNG last, so nothing above shifts when they change.
+  const cards = generateCards()
+  return { payments, refunds, disputes, payouts, cards }
 }
 
 function generatePayouts(payments: Payment[]): Payout[] {
@@ -190,4 +197,111 @@ function generatePayouts(payments: Payment[]): Payout[] {
   }
 
   return payouts
+}
+
+interface CardSeed {
+  merchantId: string
+  nickname: string
+  limit: number
+  spent: number
+  categoryLock: CardCategory | null
+  issuedDaysAgo: number
+  transitions: { to: CardStatus; daysAgo: number }[]
+}
+
+/**
+ * Five issued cards, so the list, the detail page, spend progress, and the
+ * terminal state are all visible before anyone issues one. Spend here is seed
+ * data like every amount above it; a card issued from the console starts at
+ * zero, because nothing in this console records spend. Numbers come from the
+ * same generator the console uses, and only the last four and the reference
+ * are kept.
+ */
+const CARD_SEEDS: CardSeed[] = [
+  {
+    merchantId: "mch_01",
+    nickname: "Ad spend — Meta",
+    limit: 250_000,
+    spent: 62_500,
+    categoryLock: "advertising",
+    issuedDaysAgo: 20,
+    transitions: [],
+  },
+  {
+    merchantId: "mch_04",
+    nickname: "Design tool seats",
+    limit: 120_000,
+    spent: 100_800,
+    categoryLock: "software",
+    issuedDaysAgo: 12,
+    transitions: [],
+  },
+  {
+    merchantId: "mch_05",
+    nickname: "Trade fair travel",
+    limit: 500_000,
+    spent: 150_000,
+    categoryLock: "travel",
+    issuedDaysAgo: 9,
+    transitions: [{ to: "frozen", daysAgo: 2 }],
+  },
+  {
+    merchantId: "mch_02",
+    nickname: "Contract photography",
+    limit: 80_000,
+    spent: 80_000,
+    categoryLock: "contractors",
+    issuedDaysAgo: 25,
+    transitions: [
+      { to: "frozen", daysAgo: 15 },
+      { to: "active", daysAgo: 14 },
+      { to: "cancelled", daysAgo: 3 },
+    ],
+  },
+  {
+    merchantId: "mch_07",
+    nickname: "Utilities autopay",
+    limit: 4_000_000,
+    spent: 0,
+    categoryLock: null,
+    issuedDaysAgo: 1,
+    transitions: [],
+  },
+]
+
+function generateCards(): Card[] {
+  const daysAgo = (days: number, hour: number) =>
+    new Date(
+      GENERATED_AT.getTime() - days * 86_400_000 + hour * 3_600_000,
+    ).toISOString()
+
+  return CARD_SEEDS.map((seed, index) => {
+    const merchant = merchantById(seed.merchantId)!
+    const { last4, reference } = generateCardNumber(rand)
+
+    const events: CardEvent[] = [
+      { at: daysAgo(seed.issuedDaysAgo, 9), type: "issued" },
+    ]
+    let status: CardStatus = "active"
+    for (const transition of seed.transitions) {
+      events.push({ at: daysAgo(transition.daysAgo, 14), type: eventFor(transition.to) })
+      status = transition.to
+    }
+
+    return {
+      id: `card_${pad(index + 1)}`,
+      merchantId: merchant.id,
+      nickname: seed.nickname,
+      last4,
+      numberRef: reference,
+      limit: seed.limit,
+      spent: seed.spent,
+      currency: merchant.currency,
+      status,
+      categoryLock: seed.categoryLock,
+      requestId: `seed_${pad(index + 1)}`,
+      createdAt: events[0].at,
+      events,
+    }
+  })
 }
