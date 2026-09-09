@@ -82,3 +82,43 @@ export interface PaymentFilters {
   sort?: "createdAt" | "amount"
   direction?: "asc" | "desc"
 }
+
+export type CardStatus = "active" | "frozen" | "cancelled"
+
+export type CardCategory =
+  | "advertising"
+  | "software"
+  | "travel"
+  | "contractors"
+  | "utilities"
+  | "office"
+
+export type CardEventType = "issued" | "frozen" | "unfrozen" | "cancelled"
+
+export interface CardEvent {
+  /** ISO 8601, always UTC. */
+  at: string
+  type: CardEventType
+}
+
+export interface Card {
+  id: string
+  merchantId: string
+  nickname: string
+  /** The last four digits. The full number is never stored. */
+  last4: string
+  /** Opaque reference minted with the number. Not derived from it. */
+  numberRef: string
+  /** Integer minor units. Never a float. */
+  limit: number
+  /** Integer minor units. 0 at issue; nothing in this console records spend. */
+  spent: number
+  currency: Currency
+  status: CardStatus
+  categoryLock: CardCategory | null
+  /** Client-supplied idempotency key. Stored to detect a replay; never echoed. */
+  requestId: string
+  /** ISO 8601, always UTC. */
+  createdAt: string
+  events: CardEvent[]
+}
