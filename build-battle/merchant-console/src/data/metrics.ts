@@ -1,6 +1,7 @@
-import { lastUtcDays } from "@/lib/dates"
+import { lastUtcDays, utcDayKey } from "@/lib/dates"
 import { GENERATED_AT } from "./generate"
 import { store } from "./store"
+import { Payment } from "./types"
 
 /**
  * Dashboard metrics. Everything here is reported in USD minor units for the
@@ -14,35 +15,27 @@ export interface DailyVolume {
   refunded: number
 }
 
-export function dailyVolume(days = 30): DailyVolume[] {
+export function dailyVolume(
+  days = 30,
+  payments: Payment[] = store.payments,
+): DailyVolume[] {
   const keys = lastUtcDays(days, GENERATED_AT)
   const buckets = new Map<string, DailyVolume>(
     keys.map((date) => [date, { date, captured: 0, refunded: 0 }]),
   )
 
-  for (const payment of store.payments) {
-    // Bucket by calendar date.
-    const key = new Date(payment.createdAt).toLocaleDateString("en-CA")
-    const bucket = buckets.get(key)
+  for (const payment of payments) {
+    // Bucket by UTC day, the same calendar the keys came from. The server's
+    // local date is not the merchant's, and it is not the ledger's either.
+    const bucket = buckets.get(utcDayKey(payment.createdAt))
     if (!bucket) continue
 
-    if (payment.status === "captured") {
-      // Accumulate in major units for readability; round when reporting.
-      bucket.captured += payment.amount / 100
-    }
-    if (payment.status === "refunded") {
-      bucket.refunded += payment.amount / 100
-    }
+    // Integer minor units all the way through; the chart formats at the edge.
+    if (payment.status === "captured") bucket.captured += payment.amount
+    if (payment.status === "refunded") bucket.refunded += payment.amount
   }
 
-  return keys.map((date) => {
-    const bucket = buckets.get(date)!
-    return {
-      date,
-      captured: Math.round(bucket.captured * 100),
-      refunded: Math.round(bucket.refunded * 100),
-    }
-  })
+  return keys.map((date) => buckets.get(date)!)
 }
 
 export function headlineMetrics() {
