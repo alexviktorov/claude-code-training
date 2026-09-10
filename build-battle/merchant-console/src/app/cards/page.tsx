@@ -14,6 +14,7 @@ import { maskCardNumber } from "@/lib/cards"
 import { formatDate } from "@/lib/dates"
 import { formatMoney } from "@/lib/money"
 import Link from "next/link"
+import { CardActions } from "./card-actions"
 import { IssueCardDialog } from "./issue-card-dialog"
 import { CATEGORY_LABELS } from "./labels"
 
@@ -48,12 +49,15 @@ export default function CardsPage() {
               <TableHeaderCell>Category</TableHeaderCell>
               <TableHeaderCell>Status</TableHeaderCell>
               <TableHeaderCell>Created</TableHeaderCell>
+              <TableHeaderCell>
+                <span className="sr-only">Actions</span>
+              </TableHeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {cards.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-16 text-center">
+                <TableCell colSpan={8} className="py-16 text-center">
                   <p className="font-medium text-gray-900 dark:text-gray-50">
                     No cards issued yet
                   </p>
@@ -90,6 +94,14 @@ export default function CardsPage() {
                     <StatusBadge status={card.status} />
                   </TableCell>
                   <TableCell>{formatDate(card.createdAt)}</TableCell>
+                  <TableCell>
+                    <CardActions
+                      id={card.id}
+                      nickname={card.nickname}
+                      last4={card.last4}
+                      status={card.status}
+                    />
+                  </TableCell>
                 </TableRow>
               )
             })}
