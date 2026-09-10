@@ -95,8 +95,8 @@ export function CardActions({
         <Dialog open={confirming} onOpenChange={setConfirming}>
           <DialogTrigger asChild>
             <Button
-              variant="destructive"
-              className="py-1"
+              variant="ghost"
+              className="py-1 text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400"
               disabled={pending !== null}
               aria-label={`Cancel ${label}`}
             >
