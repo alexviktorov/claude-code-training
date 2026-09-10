@@ -5,7 +5,7 @@
 
 **Ticket:** [NWP-201](../tickets/NWP-201.md)
 **Author:** Alexander Viktorov
-**Status:** reviewed
+**Status:** done
 
 ## Problem
 
