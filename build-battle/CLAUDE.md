@@ -23,6 +23,7 @@ Taking ticket NWP-201 end to end in a codebase you did not write, in 40 minutes,
 
 - Skills: `/spec`, `/pr`, `/ship-ready`
 - Subagent: `bug-investigator`, read-only, for diagnosing a report before anyone edits code
+- Subagent: `org-standards`, read-only, for auditing code against the numbered items in `docs/ORG-STANDARDS.md`
 - No hooks. Add your own if you want one.
 
 ## Workflow rules
